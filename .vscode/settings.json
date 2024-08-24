@@ -1,0 +1,7 @@
+{
+  // solidity
+  "[solidity]": {
+    "editor.defaultFormatter": "NomicFoundation.hardhat-solidity"
+    // "editor.defaultFormatter": "JuanBlanco.solidity"
+  }
+}
