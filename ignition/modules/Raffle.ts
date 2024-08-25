@@ -1,7 +1,9 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules';
-import { network } from 'hardhat';
+import { ethers, network } from 'hardhat';
 import { developmentChains, networkConfig } from '../../helper-hardhat-config';
 import VRFCoordinatorV2_5Mock from './VRFCoordinatorV2_5Mock';
+
+const VRF_SUB_FUND_AMOUNT = ethers.parseEther('5');
 
 const Raffle = buildModule('Raffle', (m) => {
   const chainId = network.config.chainId!;
@@ -23,6 +25,10 @@ const Raffle = buildModule('Raffle', (m) => {
       'SubscriptionCreated',
       'subId',
     );
+    m.call(VRFCoordinatorV2_5MockContract, 'fundSubscription', [
+      subscriptionId,
+      VRF_SUB_FUND_AMOUNT,
+    ]);
   } else {
     vrfCoordinatorAddress = networkConfigItem.vrfCoordinator;
     subscriptionId = networkConfigItem.subscriptionId;
