@@ -15,7 +15,7 @@ describe('Raffle', () => {
   const chainId = network.config.chainId!;
   const networkConfigItem = networkConfig[chainId];
 
-  describe('constructor', async () => {
+  describe('constructor', () => {
     it('initializes the raffle correctly', async () => {
       const { contract } = await loadFixture(deployFixture);
       const raffleState = await contract.getRaffleState();
@@ -26,7 +26,7 @@ describe('Raffle', () => {
     });
   });
 
-  describe('enterRaffle', async () => {
+  describe('enterRaffle', () => {
     it("revert when you don't pay enough", async () => {
       const { contract } = await loadFixture(deployFixture);
 
@@ -77,7 +77,7 @@ describe('Raffle', () => {
     });
   });
 
-  describe('enterRaffle', async () => {
+  describe('checkUpkeep', () => {
     it("returns false if they haven't sent any ETH", async () => {
       const { contract } = await loadFixture(deployFixture);
 
@@ -90,10 +90,61 @@ describe('Raffle', () => {
 
       expect(upkeepNeeded).to.equal(false);
     });
+
+    it("returns false if raffle isn't open", async () => {
+      const { contract } = await loadFixture(deployFixture);
+
+      await contract.enterRaffle({
+        value: networkConfigItem.entranceFee,
+      });
+      await network.provider.send('evm_increaseTime', [
+        networkConfigItem.interval + 1,
+      ]);
+      await network.provider.send('evm_mine', []);
+      await contract.performUpkeep(new Uint8Array());
+
+      const raffleState = await contract.getRaffleState();
+      const [upkeepNeeded] = await contract.checkUpkeep(new Uint8Array());
+
+      expect(raffleState).to.equal('1');
+      expect(upkeepNeeded).to.equal(false);
+    });
+
+    it("returns false if enough time hasn't passed", async () => {
+      const { contract } = await loadFixture(deployFixture);
+
+      await contract.enterRaffle({
+        value: networkConfigItem.entranceFee,
+      });
+      await network.provider.send('evm_increaseTime', [
+        Number(networkConfigItem.interval) - 3,
+      ]);
+      await network.provider.send('evm_mine', []);
+
+      const [upkeepNeeded] = await contract.checkUpkeep(new Uint8Array());
+
+      expect(upkeepNeeded).to.equal(false);
+    });
+
+    it('returns true if enough time has passed, has players, eth, and is open', async () => {
+      const { contract } = await loadFixture(deployFixture);
+
+      await contract.enterRaffle({
+        value: networkConfigItem.entranceFee,
+      });
+      await network.provider.send('evm_increaseTime', [
+        Number(networkConfigItem.interval) + 1,
+      ]);
+      await network.provider.send('evm_mine', []);
+
+      const [upkeepNeeded] = await contract.checkUpkeep(new Uint8Array());
+
+      expect(upkeepNeeded).to.equal(true);
+    });
   });
 
   // just test
-  describe.skip('view / pure functions', async () => {
+  describe.skip('view / pure functions', () => {
     it('get subscription id', async () => {
       const { contract } = await loadFixture(deployFixture);
 
