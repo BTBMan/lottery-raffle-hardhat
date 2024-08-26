@@ -47,8 +47,19 @@ describe('Raffle', () => {
       expect(await contract.getNumberOfPlayers()).to.greaterThan(0);
       expect(await contract.getPlayer(0)).to.equal(deployer);
     });
+
+    it('emits event when they enter', async () => {
+      const { contract } = await loadFixture(deployFixture);
+
+      await expect(
+        contract.enterRaffle({
+          value: networkConfigItem.entranceFee,
+        }),
+      ).to.emit(contract, 'RaffleEnter');
+    });
   });
 
+  // just test
   describe.skip('view / pure functions', async () => {
     it('get subscription id', async () => {
       const { contract } = await loadFixture(deployFixture);
