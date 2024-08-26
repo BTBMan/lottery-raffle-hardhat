@@ -143,6 +143,32 @@ describe('Raffle', () => {
     });
   });
 
+  describe('performUpkeep', () => {
+    it('it can only run if checkUpkeep is true', async () => {
+      const { contract } = await loadFixture(deployFixture);
+
+      await contract.enterRaffle({
+        value: networkConfigItem.entranceFee,
+      });
+      await network.provider.send('evm_increaseTime', [
+        networkConfigItem.interval + 1,
+      ]);
+      await network.provider.send('evm_mine', []);
+
+      const tx = await contract.performUpkeep(new Uint8Array());
+
+      expect(tx).to.exist;
+    });
+
+    it('reverts when checkUpkeep is false', async () => {
+      const { contract } = await loadFixture(deployFixture);
+
+      await expect(
+        contract.performUpkeep(new Uint8Array()),
+      ).to.revertedWithCustomError(contract, 'Raffle__UpkeepNotNeeded');
+    });
+  });
+
   // just test
   describe.skip('view / pure functions', () => {
     it('get subscription id', async () => {
