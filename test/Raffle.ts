@@ -57,6 +57,39 @@ describe('Raffle', () => {
         }),
       ).to.emit(contract, 'RaffleEnter');
     });
+
+    it("doesn't allow entrance when raffle is calculating", async () => {
+      const { contract } = await loadFixture(deployFixture);
+
+      await contract.enterRaffle({
+        value: networkConfigItem.entranceFee,
+      });
+      await network.provider.send('evm_increaseTime', [
+        Number(networkConfigItem.interval),
+      ]); // increase block chain time
+      await network.provider.send('evm_mine', []); // wait a block mined
+      await contract.performUpkeep(new Uint8Array());
+      await expect(
+        contract.enterRaffle({
+          value: networkConfigItem.entranceFee,
+        }),
+      ).to.revertedWithCustomError(contract, 'Raffle__NotOpen');
+    });
+  });
+
+  describe('enterRaffle', async () => {
+    it("returns false if they haven't sent any ETH", async () => {
+      const { contract } = await loadFixture(deployFixture);
+
+      await network.provider.send('evm_increaseTime', [
+        networkConfigItem.interval + 1,
+      ]);
+      await network.provider.send('evm_mine', []);
+
+      const [upkeepNeeded] = await contract.checkUpkeep(new Uint8Array());
+
+      expect(upkeepNeeded).to.equal(false);
+    });
   });
 
   // just test

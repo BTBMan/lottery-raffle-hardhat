@@ -44,6 +44,14 @@ const Raffle = buildModule('Raffle', (m) => {
     networkConfigItem.interval,
   ]);
 
+  // add raffle contract as consumer to the VRFCoordinatorV2_5MockContract
+  if (VRFCoordinatorV2_5MockContract) {
+    m.call(VRFCoordinatorV2_5MockContract, 'addConsumer', [
+      subscriptionId!,
+      contract,
+    ]);
+  }
+
   return {
     contract,
     ...(VRFCoordinatorV2_5MockContract
