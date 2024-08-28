@@ -167,6 +167,26 @@ describe('Raffle', () => {
         contract.performUpkeep(new Uint8Array()),
       ).to.revertedWithCustomError(contract, 'Raffle__UpkeepNotNeeded');
     });
+
+    it('updates the raffle state, emits and event, and calls vrf coordinator', async () => {
+      const { contract } = await loadFixture(deployFixture);
+
+      await contract.enterRaffle({
+        value: networkConfigItem.entranceFee,
+      });
+      await network.provider.send('evm_increaseTime', [
+        networkConfigItem.interval + 1,
+      ]);
+      await network.provider.send('evm_mine', []);
+
+      await expect(contract.performUpkeep(new Uint8Array()))
+        .to.emit(contract, 'RequestedRaffleWinner')
+        .withArgs((id: bigint) => id > 0);
+
+      const raffleState = await contract.getRaffleState();
+
+      expect(raffleState).to.equal('1');
+    });
   });
 
   // just test
