@@ -3,6 +3,7 @@ import { expect } from 'chai';
 import { network, ignition, ethers } from 'hardhat';
 import Raffle from '../ignition/modules/Raffle';
 import { networkConfig } from '../helper-hardhat-config';
+import { Contract } from 'ethers';
 
 describe('Raffle', () => {
   const deployFixture = async () => {
@@ -186,6 +187,43 @@ describe('Raffle', () => {
       const raffleState = await contract.getRaffleState();
 
       expect(raffleState).to.equal('1');
+    });
+  });
+
+  describe('fulfillRandomWords', () => {
+    let raffleContract: Contract;
+    let VRFCoordinatorMockContract: Contract | undefined;
+    before(async () => {
+      const { contract, VRFCoordinatorV2_5MockContract } = await loadFixture(
+        deployFixture,
+      );
+      raffleContract = contract;
+      VRFCoordinatorMockContract = VRFCoordinatorV2_5MockContract;
+
+      await raffleContract.enterRaffle({
+        value: networkConfigItem.entranceFee,
+      });
+      await network.provider.send('evm_increaseTime', [
+        networkConfigItem.interval + 1,
+      ]);
+      await network.provider.send('evm_mine', []);
+    });
+
+    it('cat only be called after performUpkeep', async () => {
+      if (VRFCoordinatorMockContract) {
+        await expect(
+          VRFCoordinatorMockContract.fulfillRandomWords(0, raffleContract),
+        ).to.revertedWithCustomError(
+          VRFCoordinatorMockContract,
+          'InvalidRequest',
+        );
+        await expect(
+          VRFCoordinatorMockContract.fulfillRandomWords(1, raffleContract),
+        ).to.revertedWithCustomError(
+          VRFCoordinatorMockContract,
+          'InvalidRequest',
+        );
+      }
     });
   });
 
