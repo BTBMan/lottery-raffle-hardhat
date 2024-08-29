@@ -3,7 +3,6 @@ import { expect } from 'chai';
 import { network, ignition, ethers } from 'hardhat';
 import Raffle from '../../ignition/modules/Raffle';
 import { developmentChains, networkConfig } from '../../helper-hardhat-config';
-import { Contract, EventLog } from 'ethers';
 
 developmentChains.includes(network.name)
   ? describe.skip
