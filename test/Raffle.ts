@@ -227,7 +227,7 @@ describe('Raffle', () => {
     });
 
     it('picks a winner, resets the lottery, and sends money', async () => {
-      const [deployer, ...accounts] = await ethers.getSigners();
+      const [_, ...accounts] = await ethers.getSigners();
       const additionalEntrants = 3;
       for (let i = 0; i < additionalEntrants; i++) {
         const account = accounts[i];
