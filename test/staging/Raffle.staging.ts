@@ -1,11 +1,11 @@
 import { loadFixture } from '@nomicfoundation/hardhat-toolbox/network-helpers';
 import { expect } from 'chai';
 import { network, ignition, ethers } from 'hardhat';
-import Raffle from '../ignition/modules/Raffle';
-import { developmentChains, networkConfig } from '../helper-hardhat-config';
+import Raffle from '../../ignition/modules/Raffle';
+import { developmentChains, networkConfig } from '../../helper-hardhat-config';
 import { Contract, EventLog } from 'ethers';
 
-!developmentChains.includes(network.name)
+developmentChains.includes(network.name)
   ? describe.skip
   : describe('Raffle', () => {
       const deployFixture = async () => {
