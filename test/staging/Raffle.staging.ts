@@ -7,7 +7,7 @@ import { Contract, EventLog } from 'ethers';
 
 developmentChains.includes(network.name)
   ? describe.skip
-  : describe('Raffle', () => {
+  : describe('Raffle staging test', () => {
       const deployFixture = async () => {
         const { contract } = await ignition.deploy(Raffle);
 
