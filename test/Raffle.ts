@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import { network, ignition, ethers } from 'hardhat';
 import Raffle from '../ignition/modules/Raffle';
 import { networkConfig } from '../helper-hardhat-config';
-import { Contract } from 'ethers';
+import { Contract, EventLog } from 'ethers';
 
 describe('Raffle', () => {
   const deployFixture = async () => {
@@ -224,6 +224,65 @@ describe('Raffle', () => {
           'InvalidRequest',
         );
       }
+    });
+
+    it('picks a winner, resets the lottery, and sends money', async () => {
+      const [deployer, ...accounts] = await ethers.getSigners();
+      const additionalEntrants = 3;
+      for (let i = 0; i < additionalEntrants; i++) {
+        const account = accounts[i];
+        const connectedContract: any = await raffleContract.connect(account);
+        await connectedContract.enterRaffle({
+          value: networkConfigItem.entranceFee,
+        });
+      }
+
+      const startingTimestamp = await raffleContract.getLatestTimeStamp();
+
+      return new Promise(async (resolve, reject) => {
+        raffleContract.once('WinnerPicked', async (recentWinner) => {
+          try {
+            const raffleState = await raffleContract.getRaffleState();
+            const endingTimestamp = await raffleContract.getLatestTimeStamp();
+            const numberPlayers = await raffleContract.getNumberOfPlayers();
+            const winnerEndingBalance = await ethers.provider.getBalance(
+              recentWinner,
+            );
+
+            expect(raffleState).to.equal('0');
+            expect(numberPlayers).to.equal(0);
+            expect(endingTimestamp).to.greaterThan(startingTimestamp);
+            expect(winnerEndingBalance).to.equal(
+              winnerStartingBalance +
+                BigInt(
+                  networkConfigItem.entranceFee *
+                    BigInt(additionalEntrants + 1),
+                ),
+            );
+
+            resolve();
+          } catch (error) {
+            reject();
+          }
+        });
+
+        const winnerStartingBalance = await ethers.provider.getBalance(
+          accounts[0].address,
+        );
+        const tx = await raffleContract.performUpkeep('0x');
+        const events = await raffleContract.queryFilter(
+          'RequestedRaffleWinner',
+          tx.blockNumber,
+        );
+        const requestId = (events[0] as EventLog).args.requestId;
+
+        if (VRFCoordinatorMockContract) {
+          await VRFCoordinatorMockContract.fulfillRandomWords(
+            requestId,
+            raffleContract,
+          );
+        }
+      });
     });
   });
 

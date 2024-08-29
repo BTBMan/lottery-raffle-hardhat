@@ -3,7 +3,7 @@ import { ethers, network } from 'hardhat';
 import { developmentChains, networkConfig } from '../../helper-hardhat-config';
 import VRFCoordinatorV2_5Mock from './VRFCoordinatorV2_5Mock';
 
-const VRF_SUB_FUND_AMOUNT = ethers.parseEther('5');
+const VRF_SUB_FUND_AMOUNT = ethers.parseEther('100'); // funding your subscription with 100 LINK.
 
 const Raffle = buildModule('Raffle', (m) => {
   const chainId = network.config.chainId!;

@@ -36,6 +36,9 @@ const config: HardhatUserConfig = {
     token: 'ETH',
     L1Etherscan: ETHERSCAN_API_KEY,
   },
+  mocha: {
+    timeout: '200000', // 200 seconds
+  },
 };
 
 export default config;
