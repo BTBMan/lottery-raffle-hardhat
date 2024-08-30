@@ -1,65 +1,77 @@
-import { loadFixture } from '@nomicfoundation/hardhat-toolbox/network-helpers';
 import { expect } from 'chai';
-import { network, ignition, ethers } from 'hardhat';
-import Raffle from '../../ignition/modules/Raffle';
+import { network, ethers } from 'hardhat';
 import { developmentChains, networkConfig } from '../../helper-hardhat-config';
 
 developmentChains.includes(network.name)
   ? describe.skip
   : describe('Raffle staging test', () => {
-      const deployFixture = async () => {
-        const { contract } = await ignition.deploy(Raffle);
-
-        return { contract };
-      };
       const chainId = network.config.chainId!;
       const networkConfigItem = networkConfig[chainId];
 
       describe('fulfillRandomWords', () => {
-        // let raffleContract: Contract;
-        // before(async () => {
-        //   const { contract } = await loadFixture(deployFixture);
-        //   raffleContract = contract;
-        // });
-
         it('works with live chainlink automation, chainlink VRF, we got a random winner', async () => {
-          const { contract } = await loadFixture(deployFixture);
+          console.log('Setting up test...');
           const [deployer] = await ethers.getSigners();
+          const contract = await ethers.getContractAt(
+            'Raffle',
+            '0x1dE93Bf1975BBd0BA62572F7aE96610EDca155CB',
+            deployer,
+          );
 
           const startingTimestamp = await contract.getLatestTimeStamp();
 
+          console.log('Setting up Listener...');
           return new Promise(async (resolve, reject) => {
-            contract.once('WinnerPicked', async (recentWinner) => {
-              try {
-                const raffleState = await contract.getRaffleState();
-                const endingTimestamp = await contract.getLatestTimeStamp();
-                const numberPlayers = await contract.getNumberOfPlayers();
-                const winnerEndingBalance = await ethers.provider.getBalance(
-                  recentWinner,
-                );
+            try {
+              contract.once(
+                contract.getEvent('WinnerPicked'),
+                async (recentWinner) => {
+                  console.log('WinnerPicked event fired!');
+                  try {
+                    const raffleState = await contract.getRaffleState();
+                    const endingTimestamp = await contract.getLatestTimeStamp();
+                    const numberPlayers = await contract.getNumberOfPlayers();
+                    const winnerEndingBalance =
+                      await ethers.provider.getBalance(recentWinner);
+                    console.log('winnerEndingBalance', winnerEndingBalance);
 
-                expect(raffleState).to.equal('0');
-                expect(numberPlayers).to.equal(0);
-                expect(endingTimestamp).to.greaterThan(startingTimestamp);
-                expect(recentWinner).to.equal(deployer.address);
-                expect(winnerEndingBalance).to.equal(
-                  winnerStartingBalance + BigInt(networkConfigItem.entranceFee),
-                );
+                    expect(raffleState).to.equal('0');
+                    expect(numberPlayers).to.equal(0);
+                    expect(endingTimestamp).to.greaterThan(startingTimestamp);
+                    expect(recentWinner).to.equal(deployer.address);
+                    // 10-2-1=7
+                    // 7+2-1=8
+                    // gas fee???
+                    expect(winnerEndingBalance).to.equal(
+                      winnerStartingBalance +
+                        BigInt(networkConfigItem.entranceFee),
+                    );
 
-                resolve();
-              } catch (error) {
-                reject();
-              }
-            });
+                    resolve();
+                  } catch (error) {
+                    console.log(error);
+                    reject();
+                  }
+                },
+              );
 
-            await contract.enterRaffle({
-              value: networkConfigItem.entranceFee,
-            });
+              console.log('Entering Raffle...');
+              const tx = await contract.enterRaffle({
+                value: networkConfigItem.entranceFee,
+                gasLimit: '1500000',
+              });
+              await tx.wait();
+              console.log('Ok, time to wait...');
 
-            // get the balance after enter the raffle
-            const winnerStartingBalance = await ethers.provider.getBalance(
-              deployer.address,
-            );
+              // get the balance after enter the raffle
+              const winnerStartingBalance = await ethers.provider.getBalance(
+                deployer.address,
+              );
+              console.log('winnerStartingBalance', winnerStartingBalance);
+            } catch (error) {
+              console.log(error);
+              reject();
+            }
           });
         });
       });
